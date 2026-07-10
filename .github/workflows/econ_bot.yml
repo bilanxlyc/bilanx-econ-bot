@@ -20,7 +20,6 @@ jobs:
 
       - name: 패키지 설치
         run: |
-          pip install requests beautifulsoup4 google-generativeai selenium webdriver-manager
           pip install requests beautifulsoup4 cloudscraper google-generativeai selenium webdriver-manager
 
           
