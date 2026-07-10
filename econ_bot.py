@@ -99,6 +99,8 @@ def fetch_calendar():
     }
     try:
         resp = requests.post(url, headers=headers, data=payload, timeout=15)
+        print(f"응답 코드: {resp.status_code}")
+        print(f"응답 앞부분: {resp.text[:300]}")
         data = resp.json()
         html = data.get("data", "")
         return parse_calendar(html)
