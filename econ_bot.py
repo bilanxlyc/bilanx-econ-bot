@@ -1,6 +1,7 @@
 import os
 import json
 import requests
+import cloudscraper
 import re
 from datetime import datetime, timedelta
 from bs4 import BeautifulSoup
@@ -76,7 +77,6 @@ def save_sent(sent):
 
 def fetch_calendar():
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
         "X-Requested-With": "XMLHttpRequest",
         "Referer": "https://www.investing.com/economic-calendar/",
     }
@@ -98,7 +98,14 @@ def fetch_calendar():
         "limit_from": "0",
     }
     try:
-        resp = requests.post(url, headers=headers, data=payload, timeout=15)
+        scraper = cloudscraper.create_scraper(
+            browser={"browser": "chrome", "platform": "windows", "desktop": True}
+        )
+        # 먼저 캘린더 페이지 방문해서 Cloudflare 쿠키 획득
+        warmup = scraper.get("https://www.investing.com/economic-calendar/", timeout=30)
+        print(f"워밍업 응답 코드: {warmup.status_code}")
+
+        resp = scraper.post(url, headers=headers, data=payload, timeout=30)
         print(f"응답 코드: {resp.status_code}")
         print(f"응답 앞부분: {resp.text[:300]}")
         data = resp.json()
