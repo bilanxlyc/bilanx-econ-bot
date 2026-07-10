@@ -185,6 +185,7 @@ def format_message(indicators):
             detail += f"  <i>(이전 {ind['prev']})</i>"
         lines.append(detail)
     lines.append("\n<i>📌 Bilanx Research</i>")
+    lines.append('<a href="https://t.me/davidstocknew">📎 주식소리통 NEO</a>')
     return "\n".join(lines)
 
 def send_telegram(message):
