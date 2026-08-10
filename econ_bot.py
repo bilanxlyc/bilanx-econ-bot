@@ -23,6 +23,28 @@ IMPORTANT_INDICATORS = [
 ]
 
 # ─────────────────────────────────────────────────────────────
+# 국가 태그 (investing.com 캘린더 행의 flag 셀 title 속성 → 이모지)
+# country[] 필터값이 실제로 어떤 나라를 가리키는지와 무관하게,
+# 응답에 찍힌 국가명을 그대로 읽어서 태그를 붙인다.
+# ─────────────────────────────────────────────────────────────
+COUNTRY_FLAG = {
+    "United States": "🇺🇸",
+    "South Korea": "🇰🇷",
+    "Japan": "🇯🇵",
+    "China": "🇨🇳",
+    "Euro Zone": "🇪🇺",
+    "Germany": "🇩🇪",
+    "United Kingdom": "🇬🇧",
+    "France": "🇫🇷",
+    "Italy": "🇮🇹",
+    "Spain": "🇪🇸",
+    "Canada": "🇨🇦",
+    "Australia": "🇦🇺",
+    "New Zealand": "🇳🇿",
+    "Switzerland": "🇨🇭",
+}
+
+# ─────────────────────────────────────────────────────────────
 # CFTC 투기적 순포지션 자산명 (패턴 처리 — 딕셔너리에 개별 등록 불필요)
 # ─────────────────────────────────────────────────────────────
 CFTC_ASSET_KR = {
@@ -276,6 +298,14 @@ def translate_name(name: str) -> str:
     return f"{kor} ({name})" if SHOW_ORIGINAL else kor
 
 
+def country_tag(country: str) -> str:
+    """국가명을 태그 문자열로 변환. 매핑에 없으면 [국가명] 형태, 국가명 자체가 없으면 빈 문자열."""
+    if not country:
+        return ""
+    flag = COUNTRY_FLAG.get(country)
+    return f"{flag} " if flag else f"[{country}] "
+
+
 # ─────────────────────────────────────────────────────────────
 # 값 파싱 / 서프라이즈
 # ─────────────────────────────────────────────────────────────
@@ -376,11 +406,39 @@ def fetch_calendar():
     return []
 
 
+def parse_country(row):
+    """
+    국가명 추출. investing.com 캘린더 행은 보통
+    <td class="flagCur"><span title="Japan" class="ceFlags ..."></span>...</td>
+    형태로 국기 셀에 국가명을 title 속성으로 담고 있음.
+    구조가 살짝 다를 경우를 대비해 img alt/title도 함께 체크.
+    """
+    flag_cell = row.find("td", class_="flagCur") or row.find(
+        "td", class_=re.compile(r"flag", re.I)
+    )
+    if not flag_cell:
+        return ""
+
+    span = flag_cell.find("span")
+    if span and span.get("title"):
+        return span["title"].strip()
+
+    img = flag_cell.find("img")
+    if img:
+        if img.get("title"):
+            return img["title"].strip()
+        if img.get("alt"):
+            return img["alt"].strip()
+
+    return ""
+
+
 def parse_calendar(html):
     soup = BeautifulSoup(html, "html.parser")
     rows = soup.find_all("tr", class_="js-event-item")
     indicators = []
     star_ok = False
+    country_ok = False
 
     for row in rows:
         try:
@@ -392,6 +450,10 @@ def parse_calendar(html):
             importance = len(row.find_all("i", class_="grayFullBullishIcon"))
             if importance > 0:
                 star_ok = True
+
+            country = parse_country(row)
+            if country:
+                country_ok = True
 
             def cell(prefix):
                 c = row.find("td", id=lambda x: x and x.startswith(prefix))
@@ -423,6 +485,7 @@ def parse_calendar(html):
             indicators.append({
                 "id": row.get("id", ""),
                 "name": name,
+                "country": country,
                 "kst_key": kst_key,
                 "kst_disp": kst_disp,
                 "actual": actual,
@@ -435,6 +498,8 @@ def parse_calendar(html):
 
     if rows and not star_ok:
         print("⚠️ 경고: 중요도(별) 파싱이 전부 0 — investing.com HTML 구조 변경 가능성")
+    if rows and not country_ok:
+        print("⚠️ 경고: 국가 정보 파싱이 전부 실패 — investing.com HTML 구조 변경 가능성 (flag 셀 selector 확인 필요)")
 
     return indicators
 
@@ -450,7 +515,8 @@ def build_blocks(indicators):
     blocks = []
     for ind in indicators:
         stars = "⭐" * ind["importance"]
-        lines = [f"{stars} <b>{translate_name(ind['name'])}</b>"]
+        tag = country_tag(ind.get("country", ""))
+        lines = [f"{stars} {tag}<b>{translate_name(ind['name'])}</b>"]
         detail = f"실제 <code>{ind['actual']}</code>"
         if ind["forecast"]:
             sp = calculate_surprise(ind["actual"], ind["forecast"])
