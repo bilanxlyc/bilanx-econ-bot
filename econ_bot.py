@@ -380,7 +380,7 @@ def fetch_calendar():
     }
     now_utc = datetime.utcnow()
     payload = {
-        "country[]": ["5", "35"],
+        "country[]": ["5", "35", "11"],  # 미국(5) / 일본(35) / 한국(11)
         "importance[]": ["2", "3"],          # 2★ 이상만
         "timeZone": "55",                    # UTC
         "timeFilter": "timeRemain",
