@@ -16,7 +16,7 @@ since = datetime.now(timezone.utc) - timedelta(days=days)
 
 runs = []
 for page in (1, 2, 3):
-    req = urllib.request.Request(f"https://api.github.com/repos/{REPO}/actions/runs?event=schedule&per_page=100&page={page}",
+    req = urllib.request.Request(f"https://api.github.com/repos/{REPO}/actions/runs?per_page=100&page={page}",
                                  headers={"User-Agent": "bilanx-measure", "Accept": "application/vnd.github+json"})
     d = json.load(urllib.request.urlopen(req, timeout=30)).get("workflow_runs", [])
     runs += d
@@ -26,7 +26,7 @@ ts = sorted(datetime.fromisoformat(r["created_at"].replace("Z", "+00:00")) for r
 ts = [t for t in ts if t >= since]
 if len(ts) >= 2:
     gaps = [(b - a).total_seconds() / 60 for a, b in zip(ts, ts[1:])]
-    print(f"[실행 간격] 최근 {days}일 예약 실행 {len(ts)}회 · 간격 중앙값 {st.median(gaps):.0f}분 · p90 {sorted(gaps)[int(len(gaps)*.9)]:.0f}분 · 최대 {max(gaps):.0f}분")
+    print(f"[실행 간격] 최근 {days}일 실행(예약+외부 호출) {len(ts)}회 · 간격 중앙값 {st.median(gaps):.0f}분 · p90 {sorted(gaps)[int(len(gaps)*.9)]:.0f}분 · 최대 {max(gaps):.0f}분")
     slot_min = [t.minute for t in ts]
     print(f"           깨어난 분(minute) 분포: 중앙값 {st.median(slot_min):.0f}분 (크론 3분 기준 → 지연 중앙값 {st.median(slot_min)-3:.0f}분)")
 else:

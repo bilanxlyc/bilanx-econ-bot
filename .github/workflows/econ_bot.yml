@@ -16,9 +16,9 @@ on:
   workflow_dispatch:
     inputs:
       minutes:
-        description: "몇 분 동안 돌릴지 (기본 55 · 한 번만 확인하려면 0)"
+        description: "몇 분 동안 돌릴지 (외부 10분 트리거 호출은 0=한 번 · 예약은 55)"
         required: false
-        default: "55"
+        default: "0"
       every:
         description: "확인 간격(분)"
         required: false
@@ -52,7 +52,9 @@ jobs:
         env:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          MINUTES: ${{ github.event.inputs.minutes || '55' }}
+          # 외부 스케줄러가 10분마다 Run workflow 를 부르고 있다(10-01 확인 — 섹터 봇과 같은 트리거). 그래서 호출마다 '한 번 확인'(0분)이 기본이고,
+          # 긴 루프(55)는 GitHub 예약(매시 3분)으로만 돈다 — 외부 트리거가 멈춘 시간대의 안전망. 두 경로 모두 concurrency 로 겹치지 않는다.
+          MINUTES: ${{ github.event.inputs.minutes || (github.event_name == 'schedule' && '55' || '0') }}
           EVERY: ${{ github.event.inputs.every || '5' }}
         run: |
           git config --global user.name "github-actions[bot]"
