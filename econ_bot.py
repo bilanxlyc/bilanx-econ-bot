@@ -602,7 +602,9 @@ def main():
 
         if all_ok:
             for ind in batch:
-                sent[ind["id"]] = datetime.utcnow().isoformat()
+                # 보낸 시각과 함께 발표 시각(KST)도 적는다 — "발표 → 발송 지연"을 나중에 잴 수 있게 (2026-10-01).
+                # 옛 기록은 문자열(보낸 시각)뿐이라 load_sent 는 두 모양을 다 받는다(키 존재 여부만 쓴다).
+                sent[ind["id"]] = {"sent": datetime.utcnow().isoformat(), "rel": ind.get("kst_key"), "name": ind.get("name")}
             print(f"✅ {disp} — {len(batch)}개 전송: " + ", ".join(i["name"] for i in batch))
         else:
             print(f"❌ {disp} — 전송 실패 (다음 사이클 재시도)")
