@@ -336,7 +336,9 @@ def calculate_surprise(actual_str, forecast_str):
     d = a - f
     if abs(d) < 1e-9:
         return "⚪ 예상 부합"
-    mark = "🔺" if d > 0 else "🔻"
+    # 색 규칙(2026-10-01 대표님): 예상 상회(서프라이즈)는 빨간 화살표, 예상 하회는 파란 화살표.
+    # 종전 🔻 는 빨간 역삼각형이라 상회·하회가 같은 색이었다. 🔽 가 텔레그램에서 파란 아래 화살표로 뜬다.
+    mark = "🔺" if d > 0 else "🔽"
     word = "예상 상회" if d > 0 else "예상 하회"
     # 퍼센트 지표는 %p로 표기 (CPI 3.4% vs 3.3% → +0.1%p)
     if "%" in actual_str and "%" in forecast_str:
@@ -380,7 +382,7 @@ def fetch_calendar():
     }
     now_utc = datetime.utcnow()
     payload = {
-        "country[]": ["5", "35", "11"],  # 미국(5) / 일본(35) / 한국(11)
+        "country[]": ["5", "11"],  # 미국(5) / 한국(11) — 일본(35)은 2026-10-01 대표님 지시로 제외
         "importance[]": ["2", "3"],          # 2★ 이상만
         "timeZone": "55",                    # UTC
         "timeFilter": "timeRemain",
